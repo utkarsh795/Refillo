@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test": "node --experimental-strip-types scripts/test-reorder-calculations.mjs",
     "preview": "vite preview",
     "gen-icons": "node scripts/generate-icons.mjs"
   },

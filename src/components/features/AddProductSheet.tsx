@@ -22,6 +22,8 @@ export function AddProductSheet({ onClose }: Props) {
   const [purchaseCost, setPurchaseCost] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
   const [lowStockThreshold, setLowStockThreshold] = useState('5');
+  const [supplierName, setSupplierName] = useState('');
+  const [leadTimeDays, setLeadTimeDays] = useState('3');
   const [barcode, setBarcode] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -41,6 +43,8 @@ export function AddProductSheet({ onClose }: Props) {
         purchaseCost: purchaseCost ? parseFloat(purchaseCost) : undefined,
         sellingPrice: sellingPrice ? parseFloat(sellingPrice) : undefined,
         lowStockThresholdMilli: isNaN(thresholdMilli) ? toMilli(5) : thresholdMilli,
+        supplierName: supplierName.trim() || undefined,
+        leadTimeDays: leadTimeDays ? parseInt(leadTimeDays, 10) : undefined,
         barcode: barcode.trim() || undefined,
       });
       await db.products.add(product);
@@ -113,6 +117,19 @@ export function AddProductSheet({ onClose }: Props) {
         <label>Low Stock Alert (below {UNIT_LABELS[unit]})</label>
         <input className="input" type="number" inputMode="decimal" min="0"
           placeholder="5" value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+        <div className="input-group">
+          <label>Supplier / Vendor (optional)</label>
+          <input className="input" placeholder="e.g. Parle Agency" value={supplierName}
+            onChange={(e) => setSupplierName(e.target.value)} />
+        </div>
+        <div className="input-group">
+          <label>Lead Time (days)</label>
+          <input className="input" type="number" min="1" max="60"
+            placeholder="3" value={leadTimeDays} onChange={(e) => setLeadTimeDays(e.target.value)} />
+        </div>
       </div>
 
       <div className="input-group">

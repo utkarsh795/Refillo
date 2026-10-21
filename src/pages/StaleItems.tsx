@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useStaleProducts, useStaleDays } from '../hooks/useDb';
 import { BottomSheet } from '../components/ui/BottomSheet';
 import { StockInSheet } from '../components/features/StockInSheet';
 import { UNIT_LABELS, fromMilli } from '../lib/quantity';
 import { Clock, TrendingDown, CheckCircle } from 'lucide-react';
-import { useState } from 'react';
 import type { Product } from '../db/schema';
 
 export function StaleItems() {
@@ -12,10 +11,11 @@ export function StaleItems() {
   const stale = useStaleProducts(staleDays) ?? [];
   const [stockInProduct, setStockInProduct] = useState<Product | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const now = useMemo(() => Date.now(), []);
 
   function daysSince(date: Date | undefined): number {
     if (!date) return Infinity;
-    const ms = Date.now() - new Date(date).getTime();
+    const ms = now - new Date(date).getTime();
     return Math.floor(ms / (1000 * 60 * 60 * 24));
   }
 
@@ -28,9 +28,14 @@ export function StaleItems() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Stale Items</h1>
+        <div>
+          <h1>Stale / Slow Stock (सुस्त माल)</h1>
+          <p style={{ margin: 0, fontSize: '0.82rem' }}>
+            Items not sold in the last {staleDays} days. Helps uncover cash tied up in slow-moving inventory.
+          </p>
+        </div>
         {stale.length > 0 && (
-          <span className="badge badge-yellow">{stale.length}</span>
+          <span className="badge badge-peach">{stale.length} items</span>
         )}
       </div>
 
