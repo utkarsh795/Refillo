@@ -2,28 +2,44 @@ import React, { useState } from 'react';
 import { db } from '../db/schema';
 import { useShopName, useCategories, useSetting } from '../hooks/useDb';
 import { useToast } from '../components/ui/Toast';
-import { Store, Trash2, Plus, ChevronRight, Moon, Wifi } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 
 export function Settings() {
   const { toast } = useToast();
   const shopName = useShopName();
   const categories = useCategories();
   const staleDays = useSetting<number>('staleDays', 30);
+  const staleGracePeriodDays = useSetting<number>('staleGracePeriodDays', 14);
+  const supplierLeadTimeDays = useSetting<number>('supplierLeadTimeDays', 3);
+  const safetyStockDays = useSetting<number>('safetyStockDays', 7);
   const defaultLowThreshold = useSetting<number>('defaultLowStockThreshold', 5);
 
-  const [editShopName, setEditShopName] = useState(shopName);
-  const [editStaleDays, setEditStaleDays] = useState(staleDays.toString());
-  const [editThreshold, setEditThreshold] = useState(defaultLowThreshold.toString());
+  const [editShopName, setEditShopName] = useState<string | null>(null);
+  const [editStaleDays, setEditStaleDays] = useState<string | null>(null);
+  const [editGracePeriod, setEditGracePeriod] = useState<string | null>(null);
+  const [editLeadTime, setEditLeadTime] = useState<string | null>(null);
+  const [editSafetyStock, setEditSafetyStock] = useState<string | null>(null);
+  const [editThreshold, setEditThreshold] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const currentShopName = editShopName !== null ? editShopName : shopName;
+  const currentStaleDays = editStaleDays !== null ? editStaleDays : staleDays.toString();
+  const currentGracePeriod = editGracePeriod !== null ? editGracePeriod : staleGracePeriodDays.toString();
+  const currentLeadTime = editLeadTime !== null ? editLeadTime : supplierLeadTimeDays.toString();
+  const currentSafetyStock = editSafetyStock !== null ? editSafetyStock : safetyStockDays.toString();
+  const currentThreshold = editThreshold !== null ? editThreshold : defaultLowThreshold.toString();
 
   async function saveSettings() {
     setSaving(true);
     try {
       await db.settings.bulkPut([
-        { key: 'shopName', value: editShopName.trim() || 'My Kirana Store' },
-        { key: 'staleDays', value: parseInt(editStaleDays) || 30 },
-        { key: 'defaultLowStockThreshold', value: parseFloat(editThreshold) || 5 },
+        { key: 'shopName', value: currentShopName.trim() || 'My Kirana Store' },
+        { key: 'staleDays', value: parseInt(currentStaleDays, 10) || 30 },
+        { key: 'staleGracePeriodDays', value: parseInt(currentGracePeriod, 10) || 14 },
+        { key: 'supplierLeadTimeDays', value: parseInt(currentLeadTime, 10) || 3 },
+        { key: 'safetyStockDays', value: parseInt(currentSafetyStock, 10) || 7 },
+        { key: 'defaultLowStockThreshold', value: parseFloat(currentThreshold) || 5 },
       ]);
       toast('Settings saved!', 'success');
     } catch {
@@ -70,31 +86,49 @@ export function Settings() {
           <label>Shop Name</label>
           <input
             className="input"
-            value={editShopName}
+            value={currentShopName}
             onChange={(e) => setEditShopName(e.target.value)}
             placeholder="My Kirana Store"
           />
         </div>
       </div>
 
-      {/* Thresholds */}
-      <div className="section-title">Thresholds</div>
+      {/* Reorder & Restock Thresholds */}
+      <div className="section-title">Reorder & Restock Settings</div>
       <div className="card" style={{ marginBottom: 16 }}>
-        <div className="input-group">
-          <label>Stale Item Threshold (days)</label>
-          <input
-            className="input"
-            type="number"
-            inputMode="numeric"
-            min="1"
-            value={editStaleDays}
-            onChange={(e) => setEditStaleDays(e.target.value)}
-          />
-          <span style={{ fontSize: '0.75rem', color: 'var(--clr-text-3)' }}>
-            Items not sold in this many days appear in Stale Items
-          </span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="input-group">
+            <label>Supplier Lead Time (days)</label>
+            <input
+              className="input"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              value={currentLeadTime}
+              onChange={(e) => setEditLeadTime(e.target.value)}
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--clr-text-3)' }}>
+              Days taken for supplier delivery
+            </span>
+          </div>
+
+          <div className="input-group">
+            <label>Safety Stock Buffer (days)</label>
+            <input
+              className="input"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              value={currentSafetyStock}
+              onChange={(e) => setEditSafetyStock(e.target.value)}
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--clr-text-3)' }}>
+              Extra stock buffer to avoid stockouts
+            </span>
+          </div>
         </div>
-        <div className="input-group" style={{ marginBottom: 0 }}>
+
+        <div className="input-group">
           <label>Default Low Stock Threshold (units)</label>
           <input
             className="input"
@@ -102,12 +136,48 @@ export function Settings() {
             inputMode="decimal"
             min="0"
             step="0.5"
-            value={editThreshold}
+            value={currentThreshold}
             onChange={(e) => setEditThreshold(e.target.value)}
           />
-          <span style={{ fontSize: '0.75rem', color: 'var(--clr-text-3)' }}>
-            Used for new products (each product can have its own threshold)
+          <span style={{ fontSize: '0.72rem', color: 'var(--clr-text-3)' }}>
+            Initial restock alert threshold for newly added products
           </span>
+        </div>
+      </div>
+
+      {/* Slow / Dead Stock Thresholds */}
+      <div className="section-title">Slow & Dead Stock Rules</div>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="input-group">
+            <label>Stale Threshold (days)</label>
+            <input
+              className="input"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              value={currentStaleDays}
+              onChange={(e) => setEditStaleDays(e.target.value)}
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--clr-text-3)' }}>
+              No sales for this many days flags item as slow moving (default 30)
+            </span>
+          </div>
+
+          <div className="input-group">
+            <label>New Product Grace Period (days)</label>
+            <input
+              className="input"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              value={currentGracePeriod}
+              onChange={(e) => setEditGracePeriod(e.target.value)}
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--clr-text-3)' }}>
+              Grace window before an unsold new item is flagged as dead stock (default 14)
+            </span>
+          </div>
         </div>
       </div>
 
@@ -118,64 +188,59 @@ export function Settings() {
       {/* Categories */}
       <div className="section-title">Categories</div>
       <div className="card" style={{ marginBottom: 16 }}>
-        {categories.map((cat) => (
-          <div key={cat} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--clr-border)' }}>
-            <span style={{ fontWeight: 500 }}>{cat}</span>
-            <button
-              className="btn btn-ghost btn-icon"
-              style={{ padding: 6 }}
-              onClick={() => removeCategory(cat)}
-              title="Remove category"
-            >
-              <Trash2 size={14} color="var(--clr-danger)" />
-            </button>
-          </div>
-        ))}
-        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           <input
             className="input"
             placeholder="New category name"
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addCategory()}
-            style={{ flex: 1 }}
           />
-          <button className="btn btn-primary" onClick={addCategory}>
-            <Plus size={16} />
+          <button className="btn btn-primary btn-icon" onClick={addCategory}>
+            <Plus size={18} />
           </button>
         </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {categories.map((cat) => (
+            <div
+              key={cat}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'var(--clr-surface-2)',
+                border: '1px solid var(--clr-border)',
+                borderRadius: 100,
+                padding: '4px 10px',
+                fontSize: '0.82rem',
+              }}
+            >
+              <span>{cat}</span>
+              <button
+                onClick={() => removeCategory(cat)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--clr-text-3)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* PWA Info */}
-      <div className="section-title">App Info</div>
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <Moon size={16} color="var(--clr-primary)" />
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>Works Offline</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--clr-text-2)' }}>
-              All data is stored locally. Internet only needed for first install.
-            </div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Wifi size={16} color="var(--clr-text-3)" />
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>No Account Required</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--clr-text-2)' }}>
-              No login, no cloud, no subscription. Your data stays on your phone.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Danger zone */}
-      <div className="section-title">Danger Zone</div>
-      <div className="card" style={{ marginBottom: 32, borderColor: 'rgba(248,113,113,0.25)' }}>
-        <p style={{ fontSize: '0.82rem', marginBottom: 12 }}>
-          Permanently delete all products, stock movements, and sale history. Cannot be undone.
+      {/* Danger Zone */}
+      <div className="section-title" style={{ color: 'var(--clr-danger)' }}>Danger Zone</div>
+      <div className="card" style={{ borderColor: 'rgba(248,113,113,0.3)', marginBottom: 24 }}>
+        <p style={{ fontSize: '0.85rem', marginBottom: 12 }}>
+          Clear all products, sales history, stock movements, and drafts. Use for testing or a clean reset.
         </p>
-        <button className="btn btn-danger btn-full" onClick={clearAllData}>
+        <button className="btn btn-danger" onClick={clearAllData}>
           <Trash2 size={16} /> Clear All Data
         </button>
       </div>

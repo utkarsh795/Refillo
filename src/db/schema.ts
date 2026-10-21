@@ -24,6 +24,9 @@ export interface Product {
   /** Milli-units below which item is flagged as low stock */
   lowStockThresholdMilli: number;
   barcode?: string;
+  supplierName?: string;
+  leadTimeDays?: number;
+  staleReviewedAt?: Date;
   trackingSince: Date;
   lastSoldAt?: Date;
   isActive: boolean;
@@ -71,6 +74,7 @@ export interface ReorderDraft {
   requestedQtyMilli: number;
   note?: string;
   createdAt: Date;
+  orderedAt?: Date;
   status: 'pending' | 'ordered' | 'received';
 }
 
@@ -98,6 +102,15 @@ export class RefilloDatabase extends Dexie {
       stockMovements: 'id, productId, type, createdAt, transactionId',
       saleTxns:       'id, createdAt, &idempotencyKey',
       reorderDrafts:  'id, productId, status, createdAt',
+      settings:       'key',
+    });
+
+    // Version 2 — Reorder Sheet & supplier/review support
+    this.version(2).stores({
+      products:       'id, name, category, barcode, isActive, lastSoldAt, staleReviewedAt',
+      stockMovements: 'id, productId, type, createdAt, transactionId',
+      saleTxns:       'id, createdAt, &idempotencyKey',
+      reorderDrafts:  'id, productId, status, createdAt, orderedAt',
       settings:       'key',
     });
   }

@@ -127,6 +127,7 @@ export function RecordSaleSheet({ onClose }: Props) {
             </p>
           )}
           <p style={{ marginTop: 8 }}>{cart.length} item{cart.length > 1 ? 's' : ''} sold</p>
+          {lastTxnId && <p style={{ fontSize: '0.72rem', color: 'var(--clr-text-3)', marginTop: 2 }}>ID: {lastTxnId.slice(0, 8)}</p>}
         </div>
         <button className="btn btn-primary" onClick={onClose} style={{ width: '100%', maxWidth: 280 }}>
           Done
